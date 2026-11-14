@@ -1,0 +1,27 @@
+name: TubeHaus app test
+on:
+  push:
+    branches: [test-tubehaus]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        values: [basic-values.yaml, accounts-values.yaml]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pyyaml psutil pytest bcrypt pydantic
+      - name: ci.py
+        run: python3 ./.github/scripts/ci.py --app tubehaus --train community --test-file ${{ matrix.values }}
+      - name: The app answers through its port
+        if: always()
+        run: |
+          docker ps -a --format '{{.Names}} {{.Status}}' || true
+      - name: What changed (metadata the scripts write)
+        if: always()
+        run: git status --short; git diff -- ix-dev/community/tubehaus | head -120
